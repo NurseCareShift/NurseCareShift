@@ -1,0 +1,58 @@
+.tag-input-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 5px 0;
+  }
+  
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: transparent; /* 背景なし */
+    color: #333;
+    font-size: 12px;
+    padding: 3px 5px;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    border: 1px solid #ccc; /* シンプルな枠線 */
+    border-radius: 12px;
+  }
+  
+  .tag-remove {
+    display: inline-block;
+    background-color: transparent;
+    color: #333;
+    font-weight: bold;
+    margin-left: 8px;
+    cursor: pointer;
+  }
+  
+  .tag-input {
+    border: none; /* 枠線なし */
+    outline: none;
+    padding: 3px;
+    font-size: 12px; /* フォントサイズを小さく */
+    margin-bottom: 5px;
+    color: #333;
+    width: 50% !important; /* 強制的に幅を50%に設定 */
+    border-bottom: 2px solid #ccc; /* 下線を追加 */
+    transition: border-color 0.3s ease;
+  }
+  
+  .tag-input:focus {
+    border-color: #3498db; /* フォーカス時に下線の色を変更 */
+  }
+  
+  
+  .tag-input::placeholder {
+    color: #aaa;
+  }
+  

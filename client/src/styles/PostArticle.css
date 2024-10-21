@@ -1,0 +1,117 @@
+/* TinyMCEエディタ全体のスタイル */
+.tox-tinymce {
+  width: 80%;  /* ページの80%に設定 */
+  margin: 0 auto;  /* 中央に配置 */
+  height: calc(100vh - 300px); /* 画面の高さに合わせる */
+  border: none;  /* 外側の枠線を削除 */
+  box-shadow: none;
+}
+
+/* TinyMCEのエディタ内のスタイル */
+.tox .tox-edit-area__iframe {
+  padding: 1.5rem;
+  background-color: #fff;
+  border: none;
+}
+
+/* 見出しのスタイル */
+.tox-content h1 {
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 1em;
+}
+
+.tox-content h2 {
+  font-size: 2em;
+  font-weight: bold;
+  color: #34495e;
+  margin-bottom: 0.75em;
+}
+
+.tox-content h3 {
+  font-size: 1.75em;
+  font-weight: bold;
+  color: #4a6fa5;
+  margin-bottom: 0.5em;
+}
+
+/* 段落のスタイル */
+.tox-content p {
+  font-size: 1.1em;
+  color: #333;
+  line-height: 1.75;
+  margin-bottom: 1.5em;
+}
+
+/* リストスタイル */
+.tox-content ul,
+.tox-content ol {
+  margin-left: 1.5em;
+  color: #333;
+  font-size: 1.1em;
+  line-height: 1.75;
+}
+
+.tox-content li {
+  margin-bottom: 0.75em;
+}
+
+/* カスタムブロックスタイル */
+.tox-content blockquote {
+  padding: 1em;
+  background-color: #f9f9f9;
+  border-left: 5px solid #3498db;
+  margin: 1.5em 0;
+  font-style: italic;
+  font-size: 1.2em;
+  color: #7f8c8d;
+}
+
+/* タイトル入力のスタイル */
+input[type="text"] {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-bottom: 2px solid #e0e0e0;
+  font-size: 24px;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus {
+  border-bottom: 2px solid #3498db;
+  outline: none;
+}
+
+/* その他調整 */
+img {
+  display: block;
+  margin: 20px auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+button {
+  background: linear-gradient(135deg, #6a89cc, #4a69bd);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  background: linear-gradient(135deg, #4a69bd, #1e3799);
+}
+
+button:focus {
+  outline: 2px solid #1e3799;
+}
+
+
