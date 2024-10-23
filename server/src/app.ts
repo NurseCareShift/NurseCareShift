@@ -1,10 +1,11 @@
-// app.ts
 import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session'; // セッション管理用
+import passport from 'passport'; // passportのインポート
 import authRoutes from './routes/authRoutes';
 import accountRoutes from './routes/accountRouter';
 import adminRoutes from './routes/adminRoutes';
@@ -12,6 +13,7 @@ import userRoutes from './routes/userRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import { verifyToken } from './middlewares/verifyToken';
 import { csrfProtection } from './middlewares/csrfProtection';
+import progressRoutes from './routes/progressRoutes';
 
 dotenv.config();
 
@@ -35,6 +37,20 @@ app.use(
   })
 );
 
+// express-session の設定
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'your-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }, // 本番環境では secure: true を推奨
+  })
+);
+
+// passport の初期化とセッションの設定
+app.use(passport.initialize());
+app.use(passport.session()); // セッションが必要な場合
+
 // レートリミッターの設定: 1分間に100リクエストまで許可
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1分間
@@ -57,6 +73,7 @@ app.use('/api/auth', csrfProtection, authRoutes); // 認証関連ルートにCSR
 app.use('/api/account', verifyToken, csrfProtection, accountRoutes); // ユーザーのアカウントルートにJWTとCSRF保護を適用
 app.use('/api/admin', verifyToken, csrfProtection, adminRoutes); // 管理者ルートにJWTとCSRF保護を適用
 app.use('/api', verifyToken, csrfProtection, userRoutes); // ユーザー情報取得ルートに認証とCSRF保護を適用
+app.use('/progress', progressRoutes);
 
 // ルートが存在しない場合のエラーハンドリング
 app.use((req: Request, res: Response) => {

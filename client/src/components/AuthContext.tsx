@@ -1,6 +1,9 @@
+// src/contexts/AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
-import { getCsrfToken, apiClient } from '../components/utils/apiClient';
+import { getCsrfToken } from '../components/utils/csrfUtils';
+import { apiClient } from '../components/utils/apiClient';
 
 // ユーザーの型定義
 interface User {
@@ -36,32 +39,32 @@ export const useAuth = () => {
 
 // AuthProvider コンポーネント
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-  
-    // ユーザー情報を取得する関数
-    const fetchUser = async () => {
-      try {
-        const csrfToken = await getCsrfToken();
-  
-        const response = await apiClient.get('/user', {
-          headers: {
-            'X-CSRF-Token': csrfToken,
-          },
-        });
-  
-        setUser(response.data);
-      } catch (error) {
-          if (axios.isAxiosError(error) && error.response?.status === 401) {
-            // ユーザーが未認証の場合
-            setUser(null);
-          } else {
-            console.error('Fetch user failed:', error);
-          }
-      } finally {
-          setIsLoading(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ユーザー情報を取得する関数
+  const fetchUser = async () => {
+    try {
+      const csrfToken = await getCsrfToken();
+
+      const response = await apiClient.get('/user', {
+        headers: {
+          'X-CSRF-Token': csrfToken,
+        },
+      });
+
+      setUser(response.data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        // ユーザーが未認証の場合
+        setUser(null);
+      } else {
+        console.error('Fetch user failed:', error);
       }
-    };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUser();

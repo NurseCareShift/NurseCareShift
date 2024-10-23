@@ -2,7 +2,8 @@ import React, { useReducer, useState, useEffect } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
 import { validateEmail, validatePassword } from '../components/utils/validators';
-import { getCsrfToken, apiClient } from '../components/utils/apiClient';
+import { getCsrfToken } from '../components/utils/csrfUtils';
+import { apiClient } from '../components/utils/apiClient';
 import axios from 'axios';
 
 type Field = 'email' | 'token' | 'newPassword' | 'confirmNewPassword';

@@ -4,7 +4,7 @@ import {
   verifyEmailChange,
   changePassword,
   deleteAccount
-} from '../Controllers/accountController';
+} from '../controllers/accountController';
 import {
   newEmailValidator,
   currentPasswordValidator,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { validateEmail } from '../components/utils/validators';
-import { getCsrfToken, apiClient } from '../components/utils/apiClient';
+import { getCsrfToken } from '../components/utils/csrfUtils'; // 修正ポイント
+import { apiClient } from '../components/utils/apiClient';
 import axios, { AxiosError } from 'axios';
 
 interface PasswordResetRequestProps {

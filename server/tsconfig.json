@@ -9,13 +9,16 @@
     "esModuleInterop": true,                  // ESモジュールとCommonJSモジュールの互換性
     "skipLibCheck": true,                     // ライブラリ型チェックのスキップ
     "forceConsistentCasingInFileNames": true,  // ファイル名の大文字小文字の一貫性を強制
-    "lib": ["ES2018", "DOM"]
+    "lib": ["ES2018", "DOM"],
+    "typeRoots": ["./types", "./node_modules/@types"],  // 型定義ファイルのルートディレクトリ
+    "baseUrl": "./",
+    "paths": {
+      "*": ["src/*"]  // `src/` フォルダ内でのパス解決をサポート
+    }
   },
   "include": [
-    "src/**/*.ts",
-    "src/types/passport-apple.d.ts",
-    "src/types/index.d.ts",
-    "src/**/*", "csurf.d.ts"
+    "src/**/*.ts",   // `src/` 内のすべてのTypeScriptファイルを対象
+    "types/**/*.d.ts"  // `types/` フォルダ内の型定義ファイルも対象
   ],
-  "exclude": ["node_modules", "xxxx"]                 // 除外するディレクトリ
+  "exclude": ["node_modules"]  // 除外するディレクトリ
 }

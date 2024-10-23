@@ -1,6 +1,6 @@
 // routes/userRoutes.ts
 import express from 'express';
-import { getUserProfile, updateUserProfile } from '../Controllers/userController';
+import { getUserProfile, updateUserProfile } from '../controllers/userController';
 import { verifyToken } from '../middlewares/verifyToken'; // JWTトークンの検証ミドルウェア
 
 const router = express.Router();

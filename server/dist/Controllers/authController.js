@@ -1,4 +1,5 @@
 "use strict";
+// src/controllers/authController.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,29 +13,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.refreshToken = exports.logoutUser = exports.resetPassword = exports.requestPasswordReset = exports.loginUser = exports.verifyEmail = exports.registerUser = void 0;
+exports.refreshTokenHandler = exports.logoutUser = exports.resetPassword = exports.requestPasswordReset = exports.loginUser = exports.verifyEmail = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_validator_1 = require("express-validator");
 const User_1 = __importDefault(require("../models/User"));
 const emailUtils_1 = require("../utils/emailUtils");
 const sessionUtils_1 = require("../utils/sessionUtils");
 const crypto_1 = __importDefault(require("crypto"));
-const SECRET_KEY = process.env.SECRET_KEY;
-const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
 const isProduction = process.env.NODE_ENV === 'production';
-const getCookieOptions = (maxAge) => {
-    // sameSite の値を明示的に指定
-    const sameSiteValue = 'lax';
-    return {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: sameSiteValue,
-        maxAge: maxAge,
-    };
-};
-if (!SECRET_KEY || !REFRESH_SECRET_KEY) {
-    throw new Error('SECRET_KEY または REFRESH_SECRET_KEY が環境変数に設定されていません');
-}
+// クッキーオプションの統一
+const getCookieOptions = (maxAge) => ({
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge,
+});
 // ユーザー登録
 const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -64,7 +57,7 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             role: role || 'general',
             verificationCode,
             verificationCodeExpires,
-            passwordHistory: [], // 空のパスワード履歴を初期化
+            passwordHistory: [hashedPassword], // パスワード履歴を初期化
         });
         // 認証メールを送信
         yield (0, emailUtils_1.sendVerificationEmail)(email, verificationCode);
@@ -129,8 +122,8 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
                 .status(403)
                 .json({ error: 'メールアドレスが確認されていません。' });
         }
-        // JWT トークンを生成
-        const accessToken = (0, sessionUtils_1.generateAccessToken)(user.id.toString());
+        // JWT トークンを生成（role を含める）
+        const accessToken = (0, sessionUtils_1.generateAccessToken)(user.id.toString(), user.role);
         const refreshToken = yield (0, sessionUtils_1.generateRefreshToken)(user.id.toString());
         // クッキーにトークンを設定
         res.cookie('accessToken', accessToken, getCookieOptions(15 * 60 * 1000)); // 15分
@@ -154,9 +147,10 @@ const requestPasswordReset = (req, res, next) => __awaiter(void 0, void 0, void 
         // ユーザーが存在するか確認
         const user = yield User_1.default.findOne({ where: { email } });
         if (!user) {
+            // セキュリティ上、存在しないメールアドレスでも成功メッセージを返す
             return res
-                .status(400)
-                .json({ error: 'このメールアドレスは登録されていません。' });
+                .status(200)
+                .json({ message: 'パスワードリセットのメールを送信しました。' });
         }
         // パスワードリセットトークンを生成
         const resetToken = crypto_1.default.randomBytes(32).toString('hex');
@@ -202,9 +196,13 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
             user.resetPasswordExpires.getTime() < Date.now()) {
             return res.status(400).json({ error: '無効なリセットトークンです。' });
         }
+        // パスワード履歴のチェック
+        const isPasswordUsed = yield user.checkPasswordHistory(newPassword);
+        if (isPasswordUsed) {
+            return res.status(400).json({ error: '過去に使用したパスワードは使用できません。' });
+        }
         // 新しいパスワードを設定
-        const hashedPassword = yield bcryptjs_1.default.hash(newPassword, 12);
-        user.password = hashedPassword;
+        yield user.updatePassword(newPassword);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         yield user.save();
@@ -228,8 +226,8 @@ const logoutUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             yield (0, sessionUtils_1.blacklistToken)(accessToken);
         }
         // クッキーをクリア
-        res.clearCookie('accessToken', getCookieOptions(0));
-        res.clearCookie('refreshToken', getCookieOptions(0));
+        res.clearCookie('accessToken', { httpOnly: true, secure: isProduction, sameSite: 'lax' });
+        res.clearCookie('refreshToken', { httpOnly: true, secure: isProduction, sameSite: 'lax' });
         res.json({ message: 'ログアウトしました。' });
     }
     catch (error) {
@@ -238,7 +236,7 @@ const logoutUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
 });
 exports.logoutUser = logoutUser;
 // リフレッシュトークンによるアクセストークンの再発行
-const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const refreshTokenHandler = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const token = req.cookies.refreshToken;
         if (!token) {
@@ -249,19 +247,19 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         if (!userId) {
             return res.status(401).json({ error: '無効なリフレッシュトークンです。' });
         }
-        // 新しいアクセストークンを生成
-        const newAccessToken = (0, sessionUtils_1.generateAccessToken)(userId);
+        // ユーザー情報を取得
+        const user = yield User_1.default.findByPk(userId);
+        if (!user) {
+            return res.status(401).json({ error: '無効なリフレッシュトークンです。' });
+        }
+        // 新しいアクセストークンを生成（role を含める）
+        const newAccessToken = (0, sessionUtils_1.generateAccessToken)(user.id.toString(), user.role);
         // 新しいアクセストークンをクッキーに設定
-        res.cookie('accessToken', newAccessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
-            maxAge: 15 * 60 * 1000, // 15分
-        });
-        res.json({ accessToken: newAccessToken });
+        res.cookie('accessToken', newAccessToken, getCookieOptions(15 * 60 * 1000)); // 15分
+        res.json({ message: 'アクセストークンを再発行しました。' });
     }
     catch (error) {
         next(error);
     }
 });
-exports.refreshToken = refreshToken;
+exports.refreshTokenHandler = refreshTokenHandler;

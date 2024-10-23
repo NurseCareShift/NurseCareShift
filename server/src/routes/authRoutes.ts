@@ -1,4 +1,3 @@
-// routes/authRoutes.ts
 import { Router } from 'express';
 import {
   registerUser,
@@ -7,8 +6,8 @@ import {
   requestPasswordReset,
   resetPassword,
   logoutUser,
-  refreshToken, // リフレッシュトークンのエンドポイントを追加
-} from '../Controllers/authController';
+  refreshToken,
+} from '../controllers/authController';
 import {
   emailValidator,
   passwordValidator,
@@ -18,7 +17,7 @@ import {
   newPasswordValidator,
   passwordRequiredValidator,
 } from '../validators/authValidators';
-import { verifyToken } from '../middlewares/verifyToken';
+import { isAuthenticated } from '../middlewares/authMiddleware';
 
 const router = Router();
 
@@ -38,7 +37,7 @@ router.post('/request-password-reset', [emailValidator], requestPasswordReset);
 router.post('/reset-password', [emailValidator, tokenValidator, newPasswordValidator], resetPassword);
 
 // ログアウト
-router.post('/logout', verifyToken, logoutUser);
+router.post('/logout', isAuthenticated, logoutUser);
 
 // トークンリフレッシュ
 router.post('/refresh-token', refreshToken);

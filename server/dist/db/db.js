@@ -26,12 +26,12 @@ const dialect = 'mysql'; // デフォルトのダイアレクトをMySQLに設�
 const sequelize = new sequelize_1.Sequelize(database, username, password, {
     host,
     dialect,
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    port: parseInt(process.env.DB_PORT || '3306', 10), // 環境変数からポートを設定、デフォルトは3306
+    logging: process.env.NODE_ENV === 'development' ? console.log : false, // 開発環境でのみSQLロギング
     pool: {
-        max: 10,
-        min: 0,
-        acquire: 30000,
+        max: 10, // 最大接続数
+        min: 0, // 最小接続数
+        acquire: 30000, // 接続のタイムアウト（ミリ秒）
         idle: 10000, // 接続がアイドル状態で保持される最大時間（ミリ秒）
     },
     dialectOptions: {

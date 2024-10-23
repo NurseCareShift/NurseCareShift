@@ -1,4 +1,5 @@
 "use strict";
+// src/utils/sessionUtils.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,15 +47,17 @@ if (!SECRET_KEY || !REFRESH_SECRET_KEY) {
     process.exit(1); // 必須の環境変数がない場合、アプリケーションを停止
 }
 // アクセストークンの生成
-const generateAccessToken = (userId) => {
-    return jsonwebtoken_1.default.sign({ id: userId }, SECRET_KEY, {
+const generateAccessToken = (userId, role) => {
+    const payload = { id: userId, role };
+    return jsonwebtoken_1.default.sign(payload, SECRET_KEY, {
         expiresIn: TOKEN_EXPIRATION_TIME,
     });
 };
 exports.generateAccessToken = generateAccessToken;
 // リフレッシュトークンの生成
 const generateRefreshToken = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    const refreshToken = jsonwebtoken_1.default.sign({ id: userId }, REFRESH_SECRET_KEY, {
+    const payload = { id: userId };
+    const refreshToken = jsonwebtoken_1.default.sign(payload, REFRESH_SECRET_KEY, {
         expiresIn: REFRESH_TOKEN_EXPIRATION_TIME,
     });
     try {
