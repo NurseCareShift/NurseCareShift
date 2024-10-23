@@ -17,16 +17,24 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 // 環境変数からメールサーバーの設定を取得
-const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.example.com';
-const EMAIL_PORT = Number(process.env.EMAIL_PORT) || 587;
-const EMAIL_USER = process.env.EMAIL_USER || 'your-email@example.com';
-const EMAIL_PASS = process.env.EMAIL_PASS || 'your-email-password';
-const EMAIL_SECURE = process.env.EMAIL_SECURE === 'true'; // TLSを使用するかどうか
+const EMAIL_HOST = process.env.EMAIL_HOST;
+const EMAIL_PORT = process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined;
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const EMAIL_SECURE = process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : undefined; // TLSを使用するかどうか
+const EMAIL_FROM = process.env.EMAIL_FROM || `"YourAppName" <${EMAIL_USER}>`;
+// 必須の環境変数が設定されているかチェック
+if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS) {
+    throw new Error('メールサーバーの設定が環境変数に正しく設定されていません。');
+}
+// EMAIL_SECURE が未設定の場合、ポート番号に応じて自動設定
+const port = EMAIL_PORT;
+const secure = EMAIL_SECURE !== undefined ? EMAIL_SECURE : port === 465;
 // Nodemailerのトランスポート設定
 const transporter = nodemailer_1.default.createTransport({
     host: EMAIL_HOST,
-    port: EMAIL_PORT,
-    secure: EMAIL_SECURE,
+    port: port,
+    secure: secure, // true for 465, false for other ports
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS,
@@ -42,10 +50,10 @@ const transporter = nodemailer_1.default.createTransport({
 const sendEmail = (to, subject, text, html) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const mailOptions = {
-            from: `"YourAppName" <${EMAIL_USER}>`,
-            to,
-            subject,
-            text,
+            from: EMAIL_FROM, // 送信元
+            to, // 送信先
+            subject, // 件名
+            text, // プレーンテキストの本文
             html, // HTML形式の本文（省略可能）
         };
         // メールを送信

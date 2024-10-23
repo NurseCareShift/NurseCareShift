@@ -1,4 +1,5 @@
 "use strict";
+// src/middlewares/verifyToken.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -15,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const sessionUtils_1 = require("../utils/sessionUtils");
+const User_1 = __importDefault(require("../models/User"));
 const SECRET_KEY = process.env.SECRET_KEY;
 if (!SECRET_KEY) {
     throw new Error('SECRET_KEY が環境変数に設定されていません');
@@ -39,11 +41,17 @@ const verifyToken = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         }
         // トークンの検証
         const decoded = jsonwebtoken_1.default.verify(token, SECRET_KEY);
-        // トークンが正当な場合、ユーザーIDをリクエストオブジェクトに追加
-        if (!decoded || !decoded.id) {
+        // トークンが正当な場合、ユーザー情報をデータベースから取得
+        if (!decoded || !decoded.id || !decoded.role) {
             return res.status(401).json({ error: '認証が無効です。' });
         }
-        req.userId = decoded.id;
+        // ユーザー情報をデータベースから取得
+        const user = yield User_1.default.findByPk(decoded.id);
+        if (!user) {
+            return res.status(401).json({ error: '認証が無効です。' });
+        }
+        // ユーザー情報を req.user にセット
+        req.user = user;
         // 次のミドルウェアへ
         next();
     }

@@ -42,6 +42,7 @@ class User extends sequelize_1.Model {
     }
 }
 User.init({
+    // フィールドの定義
     id: {
         type: sequelize_1.DataTypes.INTEGER.UNSIGNED,
         autoIncrement: true,
@@ -93,14 +94,14 @@ User.init({
         allowNull: true,
     },
     passwordHistory: {
-        type: sequelize_1.DataTypes.JSON,
+        type: sequelize_1.DataTypes.JSON, // JSONを使ってパスワード履歴を保存
         allowNull: false,
         defaultValue: [], // 初期値として空配列を指定
     },
 }, {
     tableName: 'users',
     sequelize: db_1.default,
-    timestamps: true,
+    timestamps: true, // createdAtとupdatedAtを自動生成
     hooks: {
         // 保存前にパスワードをハッシュ化
         beforeSave: (user) => __awaiter(void 0, void 0, void 0, function* () {

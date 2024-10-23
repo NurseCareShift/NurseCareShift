@@ -40,7 +40,7 @@ Profile.init({
     },
 }, {
     tableName: 'profiles',
-    sequelize: db_1.default,
+    sequelize: db_1.default, // データベース接続
     timestamps: true, // createdAtとupdatedAtを自動生成
 });
 exports.default = Profile;

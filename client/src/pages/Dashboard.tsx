@@ -1,46 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // navigateをインポート
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
-import ProfileSection from '../components/ProfileSection'; // プロフィールセクションをインポート
-import { getCsrfToken, apiClient } from '../components/utils/apiClient';
-
-const genres = [
-  { name: '血圧', link: '/articles/blood-pressure' },
-  { name: '呼吸', link: '/articles/respiration' },
-  { name: '脳神経', link: '/articles/neurology' },
-  { name: '心拍数', link: '/articles/heart-rate' },
-  { name: '体温', link: '/articles/body-temperature' },
-  // 他のジャンルも追加可能
-];
+import ProfileSection from '../components/ProfileSection';
+import { apiClient } from '../components/utils/apiClient';
+import { articles } from '../articles';
 
 const Dashboard: React.FC = () => {
   const [profile, setProfile] = useState<{ id: number; name: string } | null>(null);
-  const [understoodArticles, setUnderstoodArticles] = useState<number>(10); // 理解した記事数
-  const [reviewArticles, setReviewArticles] = useState<number>(5); // 復習したい記事数
+  const [understoodCount, setUnderstoodCount] = useState<number>(0);
+  const [reviewCount, setReviewCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const navigate = useNavigate(); // navigateを取得
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) {
       setError('ログインが必要です');
-      navigate('/login'); // ユーザーが未認証の場合はログイン画面にリダイレクト
+      navigate('/login');
       return;
     }
 
     // プロフィール取得のAPIリクエスト
     const fetchProfile = async () => {
       try {
-        const csrfToken = await getCsrfToken();
-
-        const response = await apiClient.get('/account/profile', {
-          headers: {
-            'X-CSRF-Token': csrfToken,
-          },
-        });
-
+        const response = await apiClient.get('/account/profile');
         setProfile(response.data);
       } catch (err: unknown) {
         console.error('プロフィール取得エラー:', err);
@@ -48,7 +33,24 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    // 進捗データの取得
+    const fetchProgress = async () => {
+      try {
+        const response = await apiClient.get('/progress');
+        const progresses = response.data.progresses;
+
+        const understood = progresses.filter((p: any) => p.status === 'understood').length;
+        const review = progresses.filter((p: any) => p.status === 'review').length;
+
+        setUnderstoodCount(understood);
+        setReviewCount(review);
+      } catch (err) {
+        console.error('進捗データの取得に失敗しました:', err);
+      }
+    };
+
     fetchProfile();
+    fetchProgress();
   }, [user, navigate]);
 
   return (
@@ -63,44 +65,31 @@ const Dashboard: React.FC = () => {
             {error && <p className="text-red-500 mb-4">{error}</p>}
             {profile ? (
               <ProfileSection
-                user={{ name: profile.name }} // emailは渡さない
-                understoodCount={understoodArticles}
-                reviewCount={reviewArticles}
+                user={{ name: profile.name }}
+                understoodCount={understoodCount}
+                reviewCount={reviewCount}
               />
             ) : (
               !error && <p>プロフィールを読み込み中...</p>
             )}
+            {/* 理解した記事一覧へのリンク */}
+            <div className="mt-4">
+              <Link to="/understood" className="text-blue-600 hover:underline">
+                理解したコンテンツ一覧を見る
+              </Link>
+            </div>
+            {/* 復習したい記事一覧へのリンク */}
+            <div className="mt-2">
+              <Link to="/review" className="text-blue-600 hover:underline">
+                復習したいコンテンツ一覧を見る
+              </Link>
+            </div>
           </div>
 
           {/* 右側: 進捗状況のカード */}
           <div className="w-2/3 bg-white p-8 rounded-lg shadow-lg">
             <h3 className="text-2xl font-semibold text-gray-700 text-center mb-6">進捗状況</h3>
-            <div className="space-y-4">
-              {/* 診療科別の進捗バー */}
-              <div>
-                <p className="text-lg font-semibold text-gray-700">外科</p>
-                <div className="w-full bg-gray-300 rounded-full h-4">
-                  <div className="bg-blue-500 h-4 rounded-full" style={{ width: '60%' }}></div>
-                </div>
-                <p className="text-right text-gray-500 text-sm mt-1">60% 完了</p>
-              </div>
-
-              <div>
-                <p className="text-lg font-semibold text-gray-700">内科</p>
-                <div className="w-full bg-gray-300 rounded-full h-4">
-                  <div className="bg-blue-500 h-4 rounded-full" style={{ width: '40%' }}></div>
-                </div>
-                <p className="text-right text-gray-500 text-sm mt-1">40% 完了</p>
-              </div>
-
-              <div>
-                <p className="text-lg font-semibold text-gray-700">小児科</p>
-                <div className="w-full bg-gray-300 rounded-full h-4">
-                  <div className="bg-blue-500 h-4 rounded-full" style={{ width: '80%' }}></div>
-                </div>
-                <p className="text-right text-gray-500 text-sm mt-1">80% 完了</p>
-              </div>
-            </div>
+            {/* 進捗状況の表示を実装 */}
           </div>
         </div>
 
@@ -111,16 +100,19 @@ const Dashboard: React.FC = () => {
             showThumbs={false}
             infiniteLoop
             centerMode
-            centerSlidePercentage={20} // 5つ表示
+            centerSlidePercentage={20}
             autoPlay
             interval={3000}
             transitionTime={500}
           >
-            {genres.map((genre) => (
-              <div key={genre.name} className="p-4">
-                <a href={genre.link} className="block bg-gray-200 p-6 rounded-lg shadow-md hover:bg-blue-200">
-                  <p className="text-xl font-semibold text-gray-700">{genre.name}</p>
-                </a>
+            {articles.map((article) => (
+              <div key={article.slug} className="p-4">
+                <Link
+                  to={`/articles/${article.slug}`}
+                  className="block bg-gray-200 p-6 rounded-lg shadow-md hover:bg-blue-200"
+                >
+                  <p className="text-xl font-semibold text-gray-700">{article.title}</p>
+                </Link>
               </div>
             ))}
           </Carousel>

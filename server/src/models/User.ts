@@ -3,36 +3,39 @@ import sequelize from '../db/db';
 import bcrypt from 'bcryptjs';
 import Profile from './Profile';
 
-interface UserAttributes {
+// ユーザー属性のインターフェースをエクスポート
+export interface IUser {
   id: number;
   email: string;
   password?: string;
   name?: string;
   isVerified: boolean;
+  isActive: boolean; // ユーザーが有効かどうかを示すフラグ
   role: 'admin' | 'official' | 'general';
   profileImage?: string;
   verificationCode?: string;
   verificationCodeExpires?: Date;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
-  passwordHistory: string[]; // パスワード履歴
+  passwordHistory: string[];
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'isVerified' | 'role'> {}
+interface UserCreationAttributes extends Optional<IUser, 'id' | 'isVerified' | 'isActive' | 'role'> {}
 
-class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+class User extends Model<IUser, UserCreationAttributes> implements IUser {
   public id!: number;
   public email!: string;
   public password?: string;
   public name?: string;
   public isVerified!: boolean;
+  public isActive!: boolean; // ユーザーが有効かどうか
   public role!: 'admin' | 'official' | 'general';
   public profileImage?: string;
   public verificationCode?: string;
   public verificationCodeExpires?: Date;
   public resetPasswordToken?: string;
   public resetPasswordExpires?: Date;
-  public passwordHistory!: string[]; // パスワード履歴を保存
+  public passwordHistory!: string[];
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -44,19 +47,19 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     if (!this.passwordHistory || this.passwordHistory.length === 0) {
       return false; // パスワード履歴がない場合は false を返す
     }
-    
+
     // パスワード履歴を非同期で並行処理
     const matches = await Promise.all(
       this.passwordHistory.map((oldPasswordHash) => bcrypt.compare(newPassword, oldPasswordHash))
     );
-    
+
     return matches.includes(true); // 過去のパスワードと一致した場合
   }
 
   // パスワードの更新と履歴管理
   public async updatePassword(newPassword: string): Promise<void> {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    
+
     // パスワード履歴の制限（例: 5つの履歴を保持）
     if (this.passwordHistory.length >= 5) {
       this.passwordHistory.shift(); // 古いパスワードを削除
@@ -70,6 +73,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 
 User.init(
   {
+    // フィールドの定義
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
       autoIncrement: true,
@@ -98,6 +102,10 @@ User.init(
     isVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true, // ユーザーはデフォルトで有効
     },
     role: {
       type: DataTypes.ENUM('admin', 'official', 'general'),

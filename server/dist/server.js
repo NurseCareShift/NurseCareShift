@@ -25,12 +25,12 @@ dotenv_1.default.config();
 exports.transporter = nodemailer_1.default.createTransport({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT) || 587,
-    secure: process.env.EMAIL_SECURE === 'true',
+    secure: process.env.EMAIL_SECURE === 'true', // 'true'の場合、ポートは465を使用
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    logger: process.env.NODE_ENV !== 'production',
+    logger: process.env.NODE_ENV !== 'production', // 開発環境でのみログを有効化
     debug: process.env.NODE_ENV !== 'production', // 開発環境でのみデバッグモードを有効化
 });
 // OAuthクライアント設定

@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { updateProfile } from '../Controllers/profileController';
+import { updateProfile } from '../controllers/profileController';
 import { verifyToken } from '../middlewares/verifyToken';
 
 const router = express.Router();

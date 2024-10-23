@@ -9,7 +9,6 @@ import {
 } from '../utils/emailUtils';
 import {
   invalidateAllSessions,
-  invalidateRefreshToken,
 } from '../utils/sessionUtils';
 
 const SECRET_KEY = process.env.SECRET_KEY || 'your-secret-key';
@@ -22,7 +21,7 @@ export const requestEmailChange = async (
 ) => {
   try {
     const { newEmail, currentPassword } = req.body;
-    const userId = req.userId;
+    const userId = req.user?.id;
 
     // バリデーションエラーのチェック
     const errors = validationResult(req);
@@ -30,20 +29,23 @@ export const requestEmailChange = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
+    if (!userId) {
+      return res.status(401).json({ error: '認証が必要です。' });
+    }
+
     // ユーザーの取得
     const user = await User.findByPk(userId);
-    if (!user) {
-      // 認証エラーのメッセージを統一
+    if (!user || !user.password) {
       return res.status(401).json({ error: '認証に失敗しました。' });
     }
 
     // パスワードが正しいか検証
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      user.password || ''
+      user.password
     );
     if (!isPasswordValid) {
-      return res.status(401).json({ error: '認証に失敗しました。' });
+      return res.status(401).json({ error: 'パスワードが正しくありません。' });
     }
 
     // 新しいメールアドレス確認用トークン生成
@@ -73,13 +75,13 @@ export const verifyEmailChange = async (
 ) => {
   const { token } = req.query;
 
-  if (!token) {
+  if (!token || typeof token !== 'string') {
     return res.status(400).json({ error: 'トークンが提供されていません。' });
   }
 
   try {
     // トークンを検証し、デコード
-    const decoded = jwt.verify(token as string, SECRET_KEY) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, SECRET_KEY) as jwt.JwtPayload;
 
     if (decoded && 'newEmail' in decoded && 'id' in decoded) {
       const { newEmail, id } = decoded;
@@ -93,9 +95,7 @@ export const verifyEmailChange = async (
       user.email = newEmail;
       await user.save();
 
-      res
-        .status(200)
-        .json({ message: 'メールアドレスが正常に更新されました。' });
+      res.status(200).json({ message: 'メールアドレスが正常に更新されました。' });
     } else {
       return res.status(400).json({ error: '無効なトークンです。' });
     }
@@ -112,7 +112,7 @@ export const changePassword = async (
 ) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.userId;
+    const userId = req.user?.id;
 
     // バリデーションエラーのチェック
     const errors = validationResult(req);
@@ -120,25 +120,33 @@ export const changePassword = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
+    if (!userId) {
+      return res.status(401).json({ error: '認証が必要です。' });
+    }
+
     // ユーザーの取得
     const user = await User.findByPk(userId);
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({ error: '認証に失敗しました。' });
     }
 
     // 現在のパスワードが正しいか確認
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      user.password || ''
+      user.password
     );
     if (!isPasswordValid) {
-      return res.status(401).json({ error: '認証に失敗しました。' });
+      return res.status(401).json({ error: 'パスワードが正しくありません。' });
     }
 
-    // 新しいパスワードをハッシュ化して保存
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-    user.password = hashedPassword;
-    await user.save();
+    // パスワード履歴のチェック
+    const isPasswordUsed = await user.checkPasswordHistory(newPassword);
+    if (isPasswordUsed) {
+      return res.status(400).json({ error: '過去に使用したパスワードは使用できません。' });
+    }
+
+    // 新しいパスワードを更新
+    await user.updatePassword(newPassword);
 
     // すべてのセッションを無効化
     await invalidateAllSessions(user.id.toString());
@@ -147,16 +155,8 @@ export const changePassword = async (
     await sendPasswordChangeNotification(user.email);
 
     // クッキーをクリア
-    res.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-    });
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-    });
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
     res.status(200).json({
       message: 'パスワードが変更されました。再度ログインしてください。',
@@ -174,7 +174,7 @@ export const deleteAccount = async (
 ) => {
   try {
     const { password } = req.body;
-    const userId = req.userId;
+    const userId = req.user?.id;
 
     // バリデーションエラーのチェック
     const errors = validationResult(req);
@@ -182,19 +182,23 @@ export const deleteAccount = async (
       return res.status(400).json({ errors: errors.array() });
     }
 
+    if (!userId) {
+      return res.status(401).json({ error: '認証が必要です。' });
+    }
+
     // ユーザーの取得
     const user = await User.findByPk(userId);
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({ error: '認証に失敗しました。' });
     }
 
     // パスワードの検証
     const isPasswordValid = await bcrypt.compare(
       password,
-      user.password || ''
+      user.password
     );
     if (!isPasswordValid) {
-      return res.status(401).json({ error: '認証に失敗しました。' });
+      return res.status(401).json({ error: 'パスワードが正しくありません。' });
     }
 
     // ユーザー削除
@@ -204,16 +208,8 @@ export const deleteAccount = async (
     await invalidateAllSessions(user.id.toString());
 
     // クッキーをクリア
-    res.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-    });
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-    });
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
     res.status(200).json({
       message: 'アカウントが正常に削除されました。',

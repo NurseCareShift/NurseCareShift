@@ -4,7 +4,7 @@ import {
   getUserById,
   deleteUserById,
   updateUserRole
-} from '../Controllers/adminController';
+} from '../controllers/adminController';
 import { roleValidator } from '../validators/adminValidators';
 import { authorize } from '../middlewares/authorize';
 import { verifyToken } from '../middlewares/verifyToken';

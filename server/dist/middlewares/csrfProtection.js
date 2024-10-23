@@ -11,7 +11,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 exports.csrfProtection = (0, csurf_1.default)({
     cookie: {
         httpOnly: true,
-        secure: isProduction,
+        secure: isProduction, // Use secure cookies in production
         sameSite: isProduction ? 'none' : 'lax', // Use 'none' in production
     },
 });

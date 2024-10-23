@@ -1,28 +1,9 @@
 import jwt from 'jsonwebtoken';
-import { createClient } from 'redis';
 import dotenv from 'dotenv';
+import { IAccessTokenPayload, IRefreshTokenPayload } from '../../types/jwt';
+import redisClient from '../config/redis';
 
 dotenv.config();
-
-// Redisクライアントの作成（セッション管理に使用）
-const redisClient = createClient({
-  url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
-  password: process.env.REDIS_PASSWORD || undefined, // パスワードが必要な場合
-});
-
-// Redis接続処理
-redisClient.on('error', (err) => console.error('Redis接続エラー:', err));
-redisClient.on('connect', () => console.log('Redisに接続しました'));
-redisClient.on('reconnecting', () => console.log('Redisに再接続中'));
-
-// Redisクライアントの接続
-(async () => {
-  try {
-    await redisClient.connect();
-  } catch (error) {
-    console.error('Redis接続に失敗しました:', error);
-  }
-})();
 
 // トークンの有効期限
 const TOKEN_EXPIRATION_TIME = process.env.TOKEN_EXPIRATION_TIME || '15m';
@@ -38,15 +19,17 @@ if (!SECRET_KEY || !REFRESH_SECRET_KEY) {
 }
 
 // アクセストークンの生成
-export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ id: userId }, SECRET_KEY, {
+export const generateAccessToken = (userId: string, role: 'admin' | 'official' | 'general'): string => {
+  const payload: IAccessTokenPayload = { id: userId, role };
+  return jwt.sign(payload, SECRET_KEY, {
     expiresIn: TOKEN_EXPIRATION_TIME,
   });
 };
 
 // リフレッシュトークンの生成
-export const generateRefreshToken = async (userId: string) => {
-  const refreshToken = jwt.sign({ id: userId }, REFRESH_SECRET_KEY, {
+export const generateRefreshToken = async (userId: string): Promise<string> => {
+  const payload: IRefreshTokenPayload = { id: userId };
+  const refreshToken = jwt.sign(payload, REFRESH_SECRET_KEY, {
     expiresIn: REFRESH_TOKEN_EXPIRATION_TIME,
   });
 
@@ -63,13 +46,13 @@ export const generateRefreshToken = async (userId: string) => {
 };
 
 // アクセストークンの検証
-export const verifyAccessToken = (token: string): Promise<jwt.JwtPayload> => {
+export const verifyAccessToken = (token: string): Promise<IAccessTokenPayload> => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, SECRET_KEY, (err, decoded) => {
       if (err || !decoded) {
         return reject('無効なトークンです');
       }
-      resolve(decoded as jwt.JwtPayload);
+      resolve(decoded as IAccessTokenPayload);
     });
   });
 };
@@ -77,7 +60,7 @@ export const verifyAccessToken = (token: string): Promise<jwt.JwtPayload> => {
 // リフレッシュトークンの検証
 export const verifyRefreshToken = async (token: string): Promise<string | null> => {
   try {
-    const decoded = jwt.verify(token, REFRESH_SECRET_KEY) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, REFRESH_SECRET_KEY) as IRefreshTokenPayload;
     const userId = decoded.id;
 
     const storedUserId = await redisClient.get(`refreshToken:${token}`);

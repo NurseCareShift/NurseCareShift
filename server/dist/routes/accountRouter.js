@@ -11,7 +11,7 @@ const router = (0, express_1.Router)();
  * @access  Private
  */
 router.put('/change-email', [
-    accountValidators_1.newEmailValidator,
+    accountValidators_1.newEmailValidator, // 新しいメールアドレスのバリデーション
     accountValidators_1.passwordRequiredValidator // 現在のパスワードが必須
 ], verifyToken_1.verifyToken, // 認証済みユーザーのみアクセス可能
 accountController_1.requestEmailChange);
@@ -28,7 +28,7 @@ accountController_1.verifyEmailChange);
  * @access  Private
  */
 router.put('/change-password', [
-    accountValidators_1.currentPasswordValidator,
+    accountValidators_1.currentPasswordValidator, // 現在のパスワードが必須
     accountValidators_1.newPasswordValidator // 新しいパスワードのバリデーション
 ], verifyToken_1.verifyToken, // 認証済みユーザーのみアクセス可能
 accountController_1.changePassword);

@@ -1,29 +1,24 @@
-// App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import UnderstoodArticles from './pages/UnderstoodArticles';
+import ReviewArticles from './pages/ReviewArticles';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './components/AuthContext';
 import Navbar from './components/Navbar';
 import SuccessPage from './pages/SuccessPage';
 import RegistrationPage from './pages/RegistrationPage';
-// import ArticleList from './pages/ArticleList';
 import PasswordResetRequest from './pages/PasswordResetRequest';
 import PasswordReset from './pages/PasswordReset';
-
-// 新しいコンポーネントをインポート
 import ProfileEdit from './components/AccountMenu/ProfileEdit';
 import ChangeEmail from './components/AccountMenu/ChangeEmail';
 import ChangePassword from './components/AccountMenu/ChangePassword';
 import ArticleListPage from './pages/ArticleListPage';
-// import NotificationSettings from './components/AccountMenu/NotificationSettings';
 import DeleteAccount from './components/AccountMenu/DeleteAccount';
-// import PrivacySettings from './components/AccountMenu/PrivacySettings';
-// import SocialAccounts from './components/AccountMenu/SocialAccounts';
-// import BrowsingHistory from './components/AccountMenu/BrowsingHistory';
-// import ActivityLog from './components/AccountMenu/ActivityLog';
+import ArticleTableOfContents from './components/ArticleTableOfContents';
+import ArticleSection from './components/ArticleSection';
 
 // PasswordResetRequestWrapperコンポーネントを App コンポーネントの外側に移動
 const PasswordResetRequestWrapper: React.FC = () => {
@@ -71,6 +66,8 @@ const App: React.FC = () => {
             {/* 認証が必要なルート (ProtectedRoute) */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/understood" element={<UnderstoodArticles />} />
+              <Route path="/review" element={<ReviewArticles />} />
               <Route path="/article-list" element={<ArticleListPage />} />
 
               {/* アカウントメニュー関連のルート */}
@@ -78,6 +75,10 @@ const App: React.FC = () => {
               <Route path="/account/change-email" element={<ChangeEmail />} />
               <Route path="/account/change-password" element={<ChangePassword />} />
               <Route path="/account/delete-account" element={<DeleteAccount />} />
+
+              {/* 学習コンテンツのルート */}
+              <Route path="/articles/:slug" element={<ArticleTableOfContents />} />
+              <Route path="/articles/:slug/sections/:sectionId" element={<ArticleSection />} />
             </Route>
           </Routes>
         </div>
